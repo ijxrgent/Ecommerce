@@ -9,7 +9,7 @@ import { getSession, requireAdmin } from '@/lib/auth'
 // /orders           → cualquier usuario autenticado
 // /api/orders       → cualquier usuario autenticado
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const session = await getSession(request)
 
