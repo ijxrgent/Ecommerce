@@ -6,16 +6,24 @@ export const registerSchema = z
   .object({
     name: z
       .string({ message: 'El nombre es requerido' })
+      .trim()
       .min(2, 'El nombre debe tener al menos 2 caracteres')
       .max(60, 'El nombre es demasiado largo'),
+
     email: z
       .string({ message: 'El email es requerido' })
-      .email('Email inválido')
+      .trim()
+      .email({ error: 'Email inválido' })
       .toLowerCase(),
+
     password: z
       .string({ message: 'La contraseña es requerida' })
-      .min(8, 'Mínimo 8 caracteres')
-      .max(72, 'Máximo 72 caracteres'),
+      .min(8, 'La contraseña debe tener al menos 8 caracteres')
+      .max(72, 'La contraseña es demasiado larga')
+      .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
+      .regex(/[a-z]/, 'Debe contener al menos una letra minúscula')
+      .regex(/\d/, 'Debe contener al menos un número'),
+
     confirmPassword: z.string({ message: 'Confirma tu contraseña' }),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -26,8 +34,10 @@ export const registerSchema = z
 export const loginSchema = z.object({
   email: z
     .string({ message: 'El email es requerido' })
-    .email('Email inválido')
+    .trim()
+    .email({ error: 'Email inválido' })
     .toLowerCase(),
+
   password: z.string({ message: 'La contraseña es requerida' }).min(1),
 })
 
@@ -36,9 +46,17 @@ export const loginSchema = z.object({
 export const categorySchema = z.object({
   name: z
     .string({ message: 'El nombre es requerido' })
+    .trim()
     .min(2, 'Mínimo 2 caracteres')
     .max(50, 'Máximo 50 caracteres'),
-  imageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
+
+  imageUrl: z
+    .string()
+    .trim()
+    .url({ error: 'URL inválida' })
+    .optional()
+    .or(z.literal(''))
+    .transform((url) => (url === '' ? null : url)),
 })
 
 // ─── Productos ────────────────────────────────────────────────────────────────
@@ -46,26 +64,32 @@ export const categorySchema = z.object({
 export const productSchema = z.object({
   name: z
     .string({ message: 'El nombre es requerido' })
+    .trim()
     .min(2, 'Mínimo 2 caracteres')
     .max(120, 'Máximo 120 caracteres'),
+
   description: z
     .string({ message: 'La descripción es requerida' })
+    .trim()
     .min(10, 'Mínimo 10 caracteres')
     .max(2000, 'Máximo 2000 caracteres'),
-  price: z
-    .string({ message: 'El precio es requerido' })
-    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-      message: 'El precio debe ser un número mayor a 0',
-    })
-    .transform((val) => Math.round(parseFloat(val) * 100)),
+
+  price: z.coerce
+    .number({ message: 'El precio es requerido' })
+    .positive('El precio debe ser mayor a 0')
+    .transform((val) => Math.round(val * 100)),
+
   stock: z
     .number({ message: 'El stock es requerido' })
     .int('Debe ser un número entero')
     .min(0, 'El stock no puede ser negativo'),
+
   imageUrl: z
     .string({ message: 'La imagen es requerida' })
-    .url('Debe ser una URL válida'),
+    .url({ error: 'Debe ser una URL válida' }),
+
   featured: z.boolean().default(false),
+
   categoryId: z
     .string({ message: 'La categoría es requerida' })
     .cuid('Categoría inválida'),
@@ -87,22 +111,23 @@ export const orderItemSchema = z.object({
 export const createOrderSchema = z.object({
   address: z
     .string({ message: 'La dirección es requerida' })
+    .trim()
     .min(10, 'Dirección demasiado corta')
     .max(200, 'Dirección demasiado larga'),
+
   items: z.array(orderItemSchema).min(1, 'El carrito está vacío'),
 })
 
-// Corrección: z.enum solo acepta message como parámetro
 export const updateOrderStatusSchema = z.object({
   status: z.enum(
     ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
     {
-      message: 'Estado inválido o no proporcionado',
+      error: 'Estado inválido o no proporcionado',
     }
   ),
 })
 
-// ─── Utilidad: parsear body de un Request con un schema ──────────────────────
+// ─── Utilidad ─────────────────────────────────────────────────────────────────
 
 export async function parseBody<T extends z.ZodTypeAny>(
   request: Request,
@@ -113,7 +138,6 @@ export async function parseBody<T extends z.ZodTypeAny>(
     const result = schema.safeParse(body)
 
     if (!result.success) {
-      // Corrección: acceder correctamente a los errores
       const firstError = result.error.issues[0]
       return {
         data: null,
