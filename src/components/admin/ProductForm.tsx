@@ -183,7 +183,7 @@ export default function ProductForm({
               }
             >
               {preview ? (
-                <Image
+                <img
                   src={preview}
                   alt="Preview"
                   className={styles.previewImg}

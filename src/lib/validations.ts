@@ -85,8 +85,14 @@ export const productSchema = z.object({
     .min(0, 'El stock no puede ser negativo'),
 
   imageUrl: z
-    .string({ message: 'La imagen es requerida' })
-    .url({ error: 'Debe ser una URL válida' }),
+    .string({ error: 'La imagen es requerida' })
+    .refine(
+      (val) =>
+        val.startsWith('/uploads/') ||
+        val.startsWith('http://') ||
+        val.startsWith('https://'),
+      'La imagen debe ser una URL válida o una imagen subida'
+    ),
 
   featured: z.boolean().default(false),
 

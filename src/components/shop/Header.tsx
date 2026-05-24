@@ -14,7 +14,7 @@ export default function Header({ session }: HeaderProps) {
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.refresh() // refresca los Server Components para que session sea null
+    router.replace('/') // refresca los Server Components para que session sea null
   }
 
   return (
