@@ -33,8 +33,12 @@ export default function LoginPage() {
         return
       }
 
-      // Redirigir al origen o al home, refrescando para actualizar la sesión
-      router.push(from)
+      // Redirigir según rol
+      if (data.user.role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push(from)
+      }
       router.refresh()
     } catch {
       setError('Error de conexión. Intenta de nuevo.')
